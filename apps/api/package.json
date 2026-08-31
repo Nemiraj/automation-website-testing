@@ -1,0 +1,10 @@
+{
+  "name": "@webtest/api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebTest AI Python FastAPI Backend",
+  "scripts": {
+    "start": "python server.py",
+    "dev": "python server.py"
+  }
+}
