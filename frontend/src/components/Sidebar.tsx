@@ -1,154 +1,66 @@
 import React from 'react';
-import {
-  LayoutDashboard,
-  FileSpreadsheet,
-  Compass,
-  FileCode,
-  AlertTriangle,
-  PlayCircle,
-  Network,
-  Terminal,
-  FileCheck2,
-  FileText,
-  Settings,
-  Sparkles,
-  Layers,
-  Activity,
-  Cpu
+import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  FolderKanban, 
+  PlayCircle, 
+  AlertTriangle, 
+  Settings as SettingsIcon,
+  Sparkles
 } from 'lucide-react';
 
-export type NavItem =
-  | 'dashboard'
-  | 'forms'
-  | 'journeys'
-  | 'pages'
-  | 'failures'
-  | 'runs'
-  | 'network'
-  | 'console'
-  | 'tests'
-  | 'reports'
-  | 'performance'
-  | 'ai'
-  | 'settings';
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Projects', href: '/projects', icon: FolderKanban },
+  { name: 'Start Test', href: '/new-test', icon: PlayCircle },
+  { name: 'Settings', href: '/settings', icon: SettingsIcon },
+];
 
-interface SidebarProps {
-  activeNav: NavItem;
-  setActiveNav: (nav: NavItem) => void;
-  criticalCount: number;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({ activeNav, setActiveNav, criticalCount }) => {
-  const navSections = [
-    {
-      title: 'Testing & Execution',
-      items: [
-        { id: 'dashboard', label: 'Overview Dashboard', icon: LayoutDashboard },
-        { id: 'forms', label: 'Form Testing & Fuzzing', icon: FileSpreadsheet },
-        { id: 'runs', label: 'Test Runs & Regressions', icon: PlayCircle },
-        { id: 'journeys', label: 'User Journeys Matrix', icon: Compass },
-        { id: 'tests', label: 'Synthesized Test Cases', icon: FileCheck2 },
-        { id: 'pages', label: 'Site Map Architecture', icon: FileCode },
-      ]
-    },
-    {
-      title: 'Diagnostics & Telemetry',
-      items: [
-        {
-          id: 'failures',
-          label: 'Critical Failures',
-          icon: AlertTriangle,
-          badge: criticalCount > 0 ? String(criticalCount) : undefined,
-          isDanger: criticalCount > 0
-        },
-        { id: 'network', label: 'Network & API Waterfall', icon: Network },
-        { id: 'console', label: 'Browser Console & Crashes', icon: Terminal },
-        { id: 'performance', label: 'Page Speed & Vitals', icon: Activity },
-      ]
-    },
-    {
-      title: 'Intelligence & Exports',
-      items: [
-        { id: 'ai', label: 'AI Root Cause Diagnoser', icon: Sparkles },
-        { id: 'reports', label: 'Executive QA Reports', icon: FileText },
-        { id: 'settings', label: 'Engine Configuration', icon: Settings },
-      ]
-    }
-  ];
-
+export const Sidebar: React.FC = () => {
   return (
-    <aside className="w-72 bg-surface/95 backdrop-blur-xl border-r border-border/80 flex flex-col justify-between p-4 shrink-0 select-none shadow-2xl">
+    <aside className="w-64 border-r border-slate-800/80 bg-slate-950 p-4 flex flex-col justify-between hidden md:flex min-h-[calc(100vh-4rem)]">
       <div className="space-y-6">
-        {navSections.map((section, sIdx) => (
-          <div key={sIdx} className="space-y-1.5">
-            <div className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
-              {section.title}
-            </div>
-
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeNav === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveNav(item.id as NavItem)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-bold transition-all duration-200 group ${
+        <div>
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            Navigation
+          </p>
+          <nav className="mt-2 space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-medium transition-colors ${
                       isActive
-                        ? 'bg-gradient-to-r from-blue-600/20 via-indigo-600/20 to-cyan-500/10 text-cyan-300 border border-cyan-500/30 shadow-lg shadow-blue-500/10'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-1.5 rounded-xl transition-colors ${
-                        isActive
-                          ? 'bg-blue-500/20 text-cyan-300'
-                          : 'bg-slate-900 text-slate-400 group-hover:text-slate-200'
-                      }`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <span className="truncate">{item.label}</span>
-                    </div>
+                        ? 'bg-slate-900 text-emerald-400 border border-slate-800'
+                        : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200'
+                    }`
+                  }
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
+        </div>
 
-                    {item.badge && (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
-                          item.isDanger
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse'
-                            : 'bg-slate-800 text-slate-300'
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="rounded-xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 to-slate-950 p-3.5">
+          <div className="flex items-center gap-2 text-emerald-400 mb-1.5">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-xs font-semibold">AI Auditor Active</span>
           </div>
-        ))}
+          <p className="text-[11px] leading-relaxed text-slate-400">
+            Deterministic Playwright metrics are synthesized into actionable developer fixes with root-cause explanations.
+          </p>
+        </div>
       </div>
 
-      {/* Footer Status Panel */}
-      <div className="pt-4 border-t border-border/80">
-        <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[11px] font-bold text-slate-200">Playwright Python</span>
-            </div>
-            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              READY
-            </span>
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between">
-            <span>FastAPI Server</span>
-            <span className="text-slate-400">Port 4000</span>
-          </div>
-        </div>
+      <div className="border-t border-slate-800/80 pt-4 text-[11px] text-slate-400">
+        <p>SiteAutoTest Platform v1.0</p>
+        <p className="text-slate-400 mt-0.5">Automated Multi-Device QA</p>
       </div>
     </aside>
   );
