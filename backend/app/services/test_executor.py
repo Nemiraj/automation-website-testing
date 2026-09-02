@@ -32,6 +32,8 @@ from backend.app.services.tech_detector import tech_detector
 from backend.app.services.server_error_detector import server_error_detector
 from backend.app.services.screenshot_annotator import screenshot_annotator
 from backend.app.services.source_inspector import source_inspector
+from backend.app.services.ai_readiness import ai_readiness_analyzer
+from backend.app.services.solution_engine import solution_engine
 from backend.app.services.progress_tracker import progress_tracker
 
 
@@ -135,11 +137,20 @@ class TestPipelineExecutor:
 
             progress_tracker.update_progress(test_id, 35, f"Discovered {len(crawled_pages)} pages. Beginning inspection.")
 
+            crawled_pages_data = []
+
             # 4. Iterate over crawled pages and perform deterministic test modules
             for idx, p_data in enumerate(crawled_pages):
                 current_p_url = p_data.url
                 page_percent = 35 + int((idx / max(1, len(crawled_pages))) * 45)
                 progress_tracker.update_progress(test_id, page_percent, f"Testing page: {current_p_url}", current_p_url)
+
+                crawled_pages_data.append({
+                    "url": current_p_url,
+                    "html": p_data.html_content,
+                    "title": p_data.title,
+                    "meta_description": p_data.meta_description
+                })
 
                 # Create Page DB record
                 page_db = PageModel(
@@ -405,8 +416,28 @@ class TestPipelineExecutor:
                     if multi_ann:
                         sm["annotated_url_path"] = multi_ann["url_path"]
 
-            # 8. AI Recommendations Analysis
-            progress_tracker.update_progress(test_id, 95, "Generating AI diagnoses and recommendations")
+            # 8. AI Readiness Checker
+            progress_tracker.update_progress(test_id, 92, "Running deterministic AI Readiness audit")
+            ai_readiness_res = ai_readiness_analyzer.analyze_readiness(
+                pages_data=crawled_pages_data,
+                all_issues=all_issues,
+                is_localhost=("localhost" in target_url or test_run.target_type == "localhost")
+            )
+            test_run.ai_readiness_score = ai_readiness_res.get("overall_score")
+            test_run.ai_readiness_data = ai_readiness_res
+
+            # 9. Report-Based Solution Engine
+            progress_tracker.update_progress(test_id, 95, "Generating prioritized developer solution plan")
+            solution_plan_res = solution_engine.generate_solution_plan(
+                test_id=test_id,
+                target_url=target_url,
+                all_issues=all_issues,
+                ai_readiness_data=ai_readiness_res,
+                local_source_dir=local_src_dir
+            )
+            test_run.solution_plan = solution_plan_res
+
+            # 10. AI Recommendations Analysis (Optional LLM synthesis)
             if config.get("enable_ai", True):
                 ai_result = await self.ai_analyzer.analyze_test_run(
                     target_url=target_url,
@@ -426,7 +457,7 @@ class TestPipelineExecutor:
                 )
                 db.add(ai_db)
 
-            # 9. Update TestRun completion stats
+            # 11. Update TestRun completion stats
             test_run.status = "completed"
             test_run.completed_at = datetime.utcnow()
             test_run.total_pages_scanned = len(created_pages)
@@ -440,7 +471,7 @@ class TestPipelineExecutor:
 
             await db.commit()
             progress_tracker.update_progress(test_id, 100, "Completed", current_page=None, status="completed")
-            logger.info(f"Test run {test_id} successfully completed with score {scores['overall']}")
+            logger.info(f"Test run {test_id} successfully completed with score {scores['overall']}, AI readiness {test_run.ai_readiness_score}")
 
         except Exception as e:
             logger.error(f"Fatal error executing test {test_id}: {e}\n{traceback.format_exc()}")

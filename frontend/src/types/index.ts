@@ -73,6 +73,9 @@ export interface TestRun {
   forms_score?: number | null;
   accessibility_score?: number | null;
   performance_score?: number | null;
+  ai_readiness_score?: number | null;
+  ai_readiness_data?: Record<string, any>;
+  solution_plan?: Record<string, any>;
   total_pages_scanned: number;
   critical_issues_count: number;
   high_issues_count: number;

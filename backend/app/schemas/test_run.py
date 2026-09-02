@@ -74,6 +74,11 @@ class TestRunResponse(TestRunStatusResponse):
     forms_score: Optional[float] = None
     accessibility_score: Optional[float] = None
     performance_score: Optional[float] = None
+    ai_readiness_score: Optional[float] = None
+
+    # AI Readiness & Report-Based Solution Engine
+    ai_readiness_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    solution_plan: Optional[Dict[str, Any]] = Field(default_factory=dict)
     
     # Counts
     total_pages_scanned: int = 0

@@ -61,4 +61,15 @@ export const TestService = {
   }
 };
 
+export const AIReadinessService = {
+  scan: async (data: { url: string; target_type?: string; max_pages?: number }): Promise<any> => {
+    const res = await api.post('/ai-readiness/scan', data);
+    return res.data;
+  },
+  getHistory: async (): Promise<any[]> => {
+    const res = await api.get('/ai-readiness/history');
+    return res.data;
+  }
+};
+
 export default api;

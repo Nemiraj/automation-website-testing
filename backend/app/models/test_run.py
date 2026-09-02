@@ -34,6 +34,11 @@ class TestRun(Base):
     forms_score: Mapped[float] = mapped_column(Float, nullable=True)
     accessibility_score: Mapped[float] = mapped_column(Float, nullable=True)
     performance_score: Mapped[float] = mapped_column(Float, nullable=True)
+    ai_readiness_score: Mapped[float] = mapped_column(Float, nullable=True)
+
+    # AI Readiness & Report-Based Solution Engine Data
+    ai_readiness_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    solution_plan: Mapped[dict] = mapped_column(JSON, default=dict)
     
     # Metric counts
     total_pages_scanned: Mapped[int] = mapped_column(Integer, default=0)

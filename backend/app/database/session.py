@@ -79,6 +79,12 @@ async def init_db():
                     sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN target_type VARCHAR(20) DEFAULT 'live'"))
                 if "environment" not in cols:
                     sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN environment JSON DEFAULT '{}'"))
+                if "ai_readiness_score" not in cols:
+                    sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN ai_readiness_score FLOAT"))
+                if "ai_readiness_data" not in cols:
+                    sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN ai_readiness_data JSON DEFAULT '{}'"))
+                if "solution_plan" not in cols:
+                    sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN solution_plan JSON DEFAULT '{}'"))
 
             # Check issues table
             res_iss = sync_conn.execute(text("PRAGMA table_info(issues)"))

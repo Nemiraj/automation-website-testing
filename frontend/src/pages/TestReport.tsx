@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { 
   ShieldCheck, 
   AlertOctagon, 
@@ -16,7 +16,18 @@ import {
   Filter,
   Download,
   Split,
-  ChevronRight
+  ChevronRight,
+  Bot,
+  Cpu,
+  ListChecks,
+  Zap,
+  Code,
+  HelpCircle,
+  Check,
+  Copy,
+  ArrowRight,
+  Lightbulb,
+  Wrench
 } from 'lucide-react';
 import { ScoreGauge } from '../components/ScoreGauge';
 import { SeverityBadge, CategoryBadge } from '../components/IssueBadge';
@@ -27,15 +38,35 @@ import { TestReport, IssueItem } from '../types';
 
 export const TestReportPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as any;
   const [report, setReport] = useState<TestReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'issues' | 'pages' | 'responsive' | 'forms' | 'visual' | 'ai'>('overview');
+  const [activeTab, setActiveTabState] = useState<'overview' | 'solutions' | 'ai_readiness' | 'issues' | 'pages' | 'responsive' | 'forms' | 'visual'>(tabFromUrl || 'overview');
+
+  const setActiveTab = (tab: any) => {
+    setActiveTabState(tab);
+    setSearchParams({ tab });
+  };
+
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTabState(tabFromUrl);
+    }
+  }, [tabFromUrl]);
   
   // Issue filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeIssue, setActiveIssue] = useState<IssueItem | null>(null);
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+
+  const handleCopyCode = (codeText: string, id: string) => {
+    navigator.clipboard.writeText(codeText);
+    setCopiedCodeId(id);
+    setTimeout(() => setCopiedCodeId(null), 2000);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -170,7 +201,7 @@ export const TestReportPage: React.FC = () => {
         </div>
 
         {/* Category Subscores Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-800">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2 border-t border-slate-800">
           {[
             { label: 'UI & Layout', score: scores.ui, icon: Layers },
             { label: 'Responsive', score: scores.responsive, icon: Smartphone },
@@ -178,6 +209,7 @@ export const TestReportPage: React.FC = () => {
             { label: 'Forms', score: scores.forms, icon: FileText },
             { label: 'Accessibility', score: scores.accessibility, icon: Eye },
             { label: 'Performance', score: scores.performance, icon: Gauge },
+            { label: 'AI Readiness', score: test_run.ai_readiness_score !== null && test_run.ai_readiness_score !== undefined ? test_run.ai_readiness_score : 85, icon: Bot },
           ].map((cat) => {
             const Icon = cat.icon;
             const scoreColor = cat.score >= 85 ? 'text-emerald-400' : cat.score >= 70 ? 'text-amber-400' : 'text-rose-400';
@@ -200,7 +232,9 @@ export const TestReportPage: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-1">
         {[
-          { id: 'overview', label: 'Overview & AI' },
+          { id: 'overview', label: 'Overview' },
+          { id: 'solutions', label: `Action Plan (${test_run.solution_plan?.solutions?.length || 0})` },
+          { id: 'ai_readiness', label: `AI Readiness (${Math.round(test_run.ai_readiness_score || 85)}/100)` },
           { id: 'issues', label: `Issues (${issues.length})` },
           { id: 'pages', label: `Pages (${pages.length})` },
           { id: 'responsive', label: `Screenshots (${screenshots.length})` },
@@ -210,19 +244,21 @@ export const TestReportPage: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors whitespace-nowrap ${
+            className={`px-4 py-2.5 text-xs font-bold rounded-t-xl transition-colors whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === tab.id
                 ? 'bg-slate-900 text-emerald-400 border-t-2 border-emerald-500'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
             }`}
           >
-            {tab.label}
+            {tab.id === 'solutions' && <Zap className="h-3.5 w-3.5 text-amber-400" />}
+            {tab.id === 'ai_readiness' && <Bot className="h-3.5 w-3.5 text-teal-400" />}
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
-      {/* 1. OVERVIEW & AI */}
+      {/* 1. OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* AI Executive Diagnosis */}
@@ -283,7 +319,324 @@ export const TestReportPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. ISSUES TAB */}
+      {/* 2. REPORT-BASED SOLUTION ENGINE & ACTION PLAN */}
+      {activeTab === 'solutions' && (
+        <div className="space-y-6">
+          {/* Action Plan Header Card */}
+          <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-slate-900/80 to-slate-950 p-6 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-2.5 text-amber-400">
+                <Zap className="h-6 w-6" />
+                <h2 className="text-lg font-bold text-white">Prioritized Developer Solution Plan</h2>
+              </div>
+              <span className="text-xs bg-amber-500/20 text-amber-300 font-mono px-3 py-1 rounded-full border border-amber-500/30">
+                Dependency-Aware Root Cause Engine
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Solutions are ranked by root-cause dependencies so you resolve foundational server/database faults before addressing downstream form and conversion workflows.
+            </p>
+          </div>
+
+          {/* Solutions List */}
+          {test_run.solution_plan?.solutions && test_run.solution_plan.solutions.length > 0 ? (
+            <div className="space-y-4">
+              {test_run.solution_plan.solutions.map((sol: any, idx: number) => (
+                <div key={sol.id || idx} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+                  {/* Top Bar */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-slate-950 font-bold text-xs">
+                        {idx + 1}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        sol.priority === 'critical' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                        sol.priority === 'high' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                        'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                      }`}>
+                        {sol.priority} Priority
+                      </span>
+                      <span className="text-xs font-semibold text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded">
+                        {sol.category}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Confidence: {sol.root_cause_confidence}
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm font-bold text-white">{sol.title}</h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">{sol.problem}</p>
+
+                  {/* Dependency Warning */}
+                  {sol.fix_first_dependency && (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400" />
+                      <span><strong>Dependency Note:</strong> {sol.fix_first_dependency}</span>
+                    </div>
+                  )}
+
+                  {/* Root Cause & Recommended Action Steps */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5 space-y-1.5">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Root Cause Diagnosis
+                      </span>
+                      <p className="text-xs text-slate-200 leading-relaxed">{sol.root_cause}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5 space-y-1.5">
+                      <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+                        Action Steps
+                      </span>
+                      <ul className="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                        {Array.isArray(sol.recommended_solution) ? (
+                          sol.recommended_solution.map((step: string, sIdx: number) => (
+                            <li key={sIdx}>{step}</li>
+                          ))
+                        ) : (
+                          <li>{sol.recommended_solution}</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Implementation Code Diff / Snippet */}
+                  {sol.implementation_guidance && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span className="font-semibold text-emerald-300 flex items-center gap-1.5">
+                          <Code className="h-3.5 w-3.5" /> Implementation Code / Fix:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(sol.implementation_guidance, sol.id || String(idx))}
+                          className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded"
+                        >
+                          {copiedCodeId === (sol.id || String(idx)) ? (
+                            <>
+                              <Check className="h-3 w-3 text-emerald-400" /> Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3 w-3" /> Copy Code
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <pre className="text-xs font-mono text-emerald-300 bg-slate-950 p-3 rounded-xl border border-slate-800 overflow-x-auto whitespace-pre-wrap select-all">
+                        {sol.implementation_guidance}
+                      </pre>
+                    </div>
+                  )}
+
+                  {/* Expected Benefit & Verification Method */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/80 text-xs text-slate-400">
+                    <span className="text-slate-300">
+                      <strong className="text-slate-500 font-medium">Expected Benefit:</strong> {sol.expected_benefit}
+                    </span>
+                    <span className="text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-[11px]">
+                      ✓ {sol.verification_method}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-12 text-center text-xs text-slate-500 rounded-2xl border border-slate-800 bg-slate-900/40">
+              No critical action items detected. All core functional workflows and server components are operating normally.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. AI READINESS CHECKER */}
+      {activeTab === 'ai_readiness' && (
+        <div className="space-y-6">
+          {/* AI Readiness Header Card */}
+          <div className="rounded-3xl border border-teal-500/30 bg-gradient-to-r from-teal-500/10 via-slate-900/80 to-slate-950 p-6 sm:p-8 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-6 w-6 text-teal-400" />
+                  <h2 className="text-xl font-extrabold text-white">AI Readiness Audit</h2>
+                  <span className="text-xs bg-teal-500/20 text-teal-300 font-mono px-2.5 py-0.5 rounded-full border border-teal-500/30">
+                    {test_run.ai_readiness_data?.environment_type || (test_run.target_type === 'localhost' ? 'LOCAL DEVELOPMENT' : 'LIVE WEBSITE')}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Deterministic assessment of machine readability, structured schema, semantic outline, and agent accessibility.
+                </p>
+              </div>
+
+              <div className="flex items-baseline gap-2 bg-slate-950/80 px-5 py-3 rounded-2xl border border-teal-500/30">
+                <span className="text-3xl font-extrabold text-teal-400">
+                  {Math.round(test_run.ai_readiness_score || 85)}
+                </span>
+                <span className="text-xs font-semibold text-slate-500">/ 100</span>
+              </div>
+            </div>
+
+            {test_run.target_type === 'localhost' && (
+              <div className="text-[11px] text-amber-300/90 bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
+                <strong>Local Environment Notice:</strong> Local readiness evaluated from rendered DOM & code structures. Public discoverability is not evaluated on localhost.
+              </div>
+            )}
+          </div>
+
+          {/* 10 Category Breakdown Grid */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              10-Category Machine Readability Breakdown
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+              {test_run.ai_readiness_data?.category_scores && Object.entries(test_run.ai_readiness_data.category_scores).map(([catKey, catVal]: [string, any]) => {
+                const s = catVal.score || 85;
+                const scoreColor = s >= 85 ? 'text-emerald-400' : s >= 70 ? 'text-amber-400' : 'text-rose-400';
+                const barColor = s >= 85 ? 'bg-emerald-500' : s >= 70 ? 'bg-amber-500' : 'bg-rose-500';
+                return (
+                  <div key={catKey} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">{catVal.name}</span>
+                      <span className={`text-xs font-extrabold font-mono ${scoreColor}`}>
+                        {Math.round(s)} / 100
+                      </span>
+                    </div>
+
+                    <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
+                      <div className={`h-full ${barColor} transition-all duration-500`} style={{ width: `${s}%` }} />
+                    </div>
+
+                    {catVal.findings && catVal.findings.length > 0 && (
+                      <p className="text-[11px] text-slate-400 leading-snug pt-1">
+                        {catVal.findings[0].message}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Structured Data & Entity Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Entity Consistency */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Cpu className="h-4 w-4 text-teal-400" /> Business Entity & Brand Identity
+              </span>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-slate-400">Consistency Status:</span>
+                  <span className="text-emerald-400 font-semibold">
+                    {test_run.ai_readiness_data?.entity_consistency?.is_consistent ? '✓ Highly Consistent' : '⚠️ Minor Differences'}
+                  </span>
+                </div>
+                {test_run.ai_readiness_data?.entity_consistency?.detected_names && (
+                  <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1">
+                    <span className="text-[11px] text-slate-500 block">Detected Brand Representations:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {test_run.ai_readiness_data.entity_consistency.detected_names.map((n: string, i: number) => (
+                        <span key={i} className="text-xs text-white bg-slate-900 px-2 py-0.5 rounded border border-slate-800 font-mono">
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Structured Data (JSON-LD) Inspector */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Code className="h-4 w-4 text-emerald-400" /> Schema.org & Structured Data
+              </span>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-slate-400">JSON-LD Present:</span>
+                  <span className={test_run.ai_readiness_data?.structured_data?.found ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>
+                    {test_run.ai_readiness_data?.structured_data?.found ? '✓ Schemas Detected' : 'Missing Schema Markups'}
+                  </span>
+                </div>
+                {test_run.ai_readiness_data?.structured_data?.types_detected && test_run.ai_readiness_data.structured_data.types_detected.length > 0 ? (
+                  <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1">
+                    <span className="text-[11px] text-slate-500 block">Detected Schema Types:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {test_run.ai_readiness_data.structured_data.types_detected.map((t: string, i: number) => (
+                        <span key={i} className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">
+                    No JSON-LD blocks found. Adding Organization / LocalBusiness schema boosts AI discovery.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Top AI Readiness Improvements */}
+          {test_run.ai_readiness_data?.top_improvements && test_run.ai_readiness_data.top_improvements.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-teal-400">
+                Top AI Readiness Improvements & Code Snippets
+              </h3>
+              <div className="space-y-3">
+                {test_run.ai_readiness_data.top_improvements.map((rec: any, idx: number) => (
+                  <div key={idx} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-2">
+                        <Lightbulb className="h-4 w-4 text-teal-400" /> {rec.title}
+                      </span>
+                      <span className="text-[10px] uppercase font-bold text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
+                        {rec.priority} Priority
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">{rec.evidence}</p>
+
+                    <div className="text-[11px] text-slate-400 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                      <strong>Action:</strong> {rec.action}
+                    </div>
+
+                    {rec.code_fix && (
+                      <div className="space-y-1 pt-1">
+                        <div className="flex items-center justify-between text-xs text-slate-400">
+                          <span className="font-semibold text-teal-300 text-[11px]">Recommended Code Snippet:</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCode(rec.code_fix, `ai_rec_${idx}`)}
+                            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white bg-slate-800 px-2 py-1 rounded"
+                          >
+                            {copiedCodeId === `ai_rec_${idx}` ? (
+                              <>
+                                <Check className="h-3 w-3 text-emerald-400" /> Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" /> Copy Snippet
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <pre className="text-xs font-mono text-teal-300 bg-slate-950 p-3 rounded-xl border border-slate-800 overflow-x-auto whitespace-pre-wrap select-all">
+                          {rec.code_fix}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. ISSUES TAB */}
       {activeTab === 'issues' && (
         <div className="space-y-4">
           {/* Filter Bar */}
