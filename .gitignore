@@ -1,47 +1,82 @@
-# Python
+# Node & Frontend Dependencies
+node_modules/
+*/node_modules/
+frontend/node_modules/
+package-lock.json.bak
+.pnp
+.pnp.js
+dist/
+dist-ssr/
+*.local
+
+# Python Environments & Caches
+venv/
+.venv/
+*/venv/
+backend/venv/
+env/
+ENV/
 __pycache__/
+*/__pycache__/
+*/**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 .pytest_cache/
 .coverage
 htmlcov/
+build/
+develop-eggs/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Node / React
-node_modules/
-dist/
+# Storage, Screenshots, Diffs & Generated Images
+storage/
+backend/storage/
+backend/storage/screenshots/
+backend/storage/diffs/
+storage/screenshots/
+storage/diffs/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.bmp
+!frontend/src/assets/**
+!public/**
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+backend/storage/websitetester.db
+
+# Environment Variables & Secrets
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+backend/.env
+frontend/.env
+!.env.example
+
+# Logs & Debugging
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Storage & Temporary Files
-storage/screenshots/*.png
-storage/diffs/*.png
-!storage/.gitkeep
-.env
-
-# IDE
+# IDE & OS Files
 .vscode/
 .idea/
 *.swp
+*.swo
+.DS_Store
+Thumbs.db

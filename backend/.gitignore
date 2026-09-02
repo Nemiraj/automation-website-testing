@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Storage & Screenshots
+storage/
+screenshots/
+diffs/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+!.env.example
