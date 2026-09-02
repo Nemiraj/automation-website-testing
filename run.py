@@ -3,9 +3,13 @@ import sys
 import asyncio
 import uvicorn
 
-# On Windows, enforce ProactorEventLoopPolicy for Playwright subprocesses
+# On Windows, enforce ProactorEventLoopPolicy for Playwright subprocesses if needed
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    try:
+        if not isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception:
+        pass
 
 root_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(root_dir, "backend")

@@ -58,18 +58,21 @@ async def create_test_run(
     payload: TestRunCreate,
     db: AsyncSession = Depends(get_db_session)
 ):
-    # Validate target URL for SSRF / protocol safety
-    is_valid, msg_or_url = validate_target_url(payload.target_url)
+    target_type = payload.target_type or "live"
+    # Validate target URL for SSRF / protocol safety / localhost mode
+    is_valid, msg_or_url = validate_target_url(payload.target_url, target_type=target_type)
     if not is_valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg_or_url)
 
     test_run = TestRun(
         project_id=payload.project_id,
         target_url=msg_or_url,
+        target_type=target_type,
         status="pending",
         current_stage="Queued",
         progress_percentage=0,
-        config=payload.config.model_dump() if payload.config else {}
+        config=payload.config.model_dump() if payload.config else {},
+        environment={}
     )
     db.add(test_run)
     await db.commit()
@@ -82,11 +85,13 @@ async def create_test_run(
     return TestRunStatusResponse(
         id=test_run.id,
         target_url=test_run.target_url,
+        target_type=test_run.target_type,
         status=test_run.status,
         progress_percentage=test_run.progress_percentage,
         current_stage=test_run.current_stage,
         current_page_url=test_run.current_page_url,
         error_message=test_run.error_message,
+        environment=test_run.environment or {},
         created_at=test_run.created_at,
         started_at=test_run.started_at,
         completed_at=test_run.completed_at
@@ -123,20 +128,6 @@ async def get_test_run(test_id: str, db: AsyncSession = Depends(get_db_session))
 
 @router.get("/{test_id}/status", response_model=TestRunStatusResponse)
 async def get_test_status(test_id: str, db: AsyncSession = Depends(get_db_session)):
-    # Check in-memory live progress tracker first
-    live_state = progress_tracker.get_latest_state(test_id)
-    if live_state:
-        return TestRunStatusResponse(
-            id=test_id,
-            target_url=live_state.get("current_page_url") or "",
-            status=live_state.get("status", "running"),
-            progress_percentage=live_state.get("progress_percentage", 0),
-            current_stage=live_state.get("current_stage", "Running"),
-            current_page_url=live_state.get("current_page_url"),
-            error_message=live_state.get("error_message"),
-            created_at=datetime.utcnow()
-        )
-
     stmt = select(TestRun).where(TestRun.id == test_id)
     result = await db.execute(stmt)
     run = result.scalar_one_or_none()
@@ -144,14 +135,34 @@ async def get_test_status(test_id: str, db: AsyncSession = Depends(get_db_sessio
     if not run:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test run not found")
 
+    # Check in-memory live progress tracker first
+    live_state = progress_tracker.get_latest_state(test_id)
+    if live_state:
+        return TestRunStatusResponse(
+            id=test_id,
+            target_url=live_state.get("current_page_url") or run.target_url,
+            target_type=run.target_type,
+            status=live_state.get("status", run.status),
+            progress_percentage=live_state.get("progress_percentage", run.progress_percentage),
+            current_stage=live_state.get("current_stage", run.current_stage),
+            current_page_url=live_state.get("current_page_url"),
+            error_message=live_state.get("error_message"),
+            environment=run.environment or {},
+            created_at=run.created_at,
+            started_at=run.started_at,
+            completed_at=run.completed_at
+        )
+
     return TestRunStatusResponse(
         id=run.id,
         target_url=run.target_url,
+        target_type=run.target_type,
         status=run.status,
         progress_percentage=run.progress_percentage,
         current_stage=run.current_stage,
         current_page_url=run.current_page_url,
         error_message=run.error_message,
+        environment=run.environment or {},
         created_at=run.created_at,
         started_at=run.started_at,
         completed_at=run.completed_at

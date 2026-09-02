@@ -27,7 +27,7 @@ export const ProjectService = {
 };
 
 export const TestService = {
-  create: async (data: { target_url: string; project_id?: string; config?: Partial<TestConfig> }): Promise<TestRun> => {
+  create: async (data: { target_url: string; target_type?: 'live' | 'localhost'; project_id?: string; config?: Partial<TestConfig> }): Promise<TestRun> => {
     const res = await api.post('/tests', data);
     return res.data;
   },

@@ -47,9 +47,13 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     if (!quickUrl.trim()) return;
 
+    const isLh = quickUrl.includes('localhost') || quickUrl.includes('127.0.0.1');
     setSubmitting(true);
     try {
-      const test = await TestService.create({ target_url: quickUrl.trim() });
+      const test = await TestService.create({ 
+        target_url: quickUrl.trim(),
+        target_type: isLh ? 'localhost' : 'live'
+      });
       navigate(`/tests/${test.id}/progress`);
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to start automated test');
@@ -169,6 +173,13 @@ export const Dashboard: React.FC = () => {
                       >
                         {test.target_url}
                       </Link>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                        test.target_type === 'localhost'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : 'bg-teal-500/10 text-teal-400 border border-teal-500/20'
+                      }`}>
+                        {test.target_type === 'localhost' ? 'Localhost' : 'Live'}
+                      </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
                         test.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
                         test.status === 'running' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse' :

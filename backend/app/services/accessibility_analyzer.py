@@ -24,12 +24,16 @@ class AccessibilityAnalyzer:
                         if (results.emptyLinks.length >= 8) return;
                         const text = (a.innerText || a.getAttribute('aria-label') || a.getAttribute('title') || '').trim();
                         const hasImgAlt = Array.from(a.querySelectorAll('img')).some(i => (i.getAttribute('alt') || '').trim().length > 0);
-                        const hasSvg = !!a.querySelector('svg');
                         
                         if (!text && !hasImgAlt) {
+                            const rect = a.getBoundingClientRect();
                             results.emptyLinks.push({
                                 href: a.getAttribute('href') || '',
-                                outerHTML: a.outerHTML.slice(0, 100)
+                                outerHTML: a.outerHTML.slice(0, 100),
+                                x: Math.round(rect.x),
+                                y: Math.round(rect.y),
+                                width: Math.round(rect.width),
+                                height: Math.round(rect.height)
                             });
                         }
                     });
@@ -40,9 +44,14 @@ class AccessibilityAnalyzer:
                         const text = (btn.innerText || btn.getAttribute('aria-label') || btn.getAttribute('title') || '').trim();
                         const hasImgAlt = Array.from(btn.querySelectorAll('img')).some(i => (i.getAttribute('alt') || '').trim().length > 0);
                         if (!text && !hasImgAlt) {
+                            const rect = btn.getBoundingClientRect();
                             results.emptyButtons.push({
                                 outerHTML: btn.outerHTML.slice(0, 100),
-                                className: btn.className
+                                className: btn.className,
+                                x: Math.round(rect.x),
+                                y: Math.round(rect.y),
+                                width: Math.round(rect.width),
+                                height: Math.round(rect.height)
                             });
                         }
                     });
@@ -91,7 +100,15 @@ class AccessibilityAnalyzer:
                     "why_it_matters": "Users navigating with screen readers cannot determine the target of links that only contain unlabelled icons.",
                     "recommendation": "Add inner text, an `aria-label`, or an `alt` tag on the enclosed image/icon.",
                     "suggested_fix": "Add `aria-label='...'` to the <a> tag.",
-                    "selector": "a[href]",
+                    "selector": f"a[href='{link.get('href')}']",
+                    "coordinates": {
+                        "x": link.get("x", 0),
+                        "y": link.get("y", 0),
+                        "width": link.get("width", 24),
+                        "height": link.get("height", 24),
+                        "tag": "a"
+                    },
+                    "marker_type": "arrow",
                     "evidence": link
                 })
 
@@ -101,31 +118,39 @@ class AccessibilityAnalyzer:
                     "category": "accessibility",
                     "severity": "high",
                     "page_url": page_url,
-                    "title": "Button Missing Accessible Name",
-                    "description": "A button element contains only an icon without an aria-label or accessible text.",
-                    "why_it_matters": "Blind and low-vision users cannot understand the action triggered by an unlabelled button.",
-                    "recommendation": "Add `aria-label='Search'` or `<span class='sr-only'>...</span>` inside the button.",
-                    "suggested_fix": "Add `aria-label='...'` to the <button> element.",
+                    "title": "Button Missing Accessible Text Label",
+                    "description": "Button element lacks readable text, `aria-label`, or an `alt` tag.",
+                    "why_it_matters": "Screen reader users cannot identify the function of empty icon buttons.",
+                    "recommendation": "Add descriptive button text or an `aria-label` attribute.",
+                    "suggested_fix": "Add `aria-label='Action description'` to the button.",
                     "selector": "button",
+                    "coordinates": {
+                        "x": btn.get("x", 0),
+                        "y": btn.get("y", 0),
+                        "width": btn.get("width", 32),
+                        "height": btn.get("height", 32),
+                        "tag": "button"
+                    },
+                    "marker_type": "arrow",
                     "evidence": btn
                 })
 
-            # 4. Duplicate IDs
+            # 4. Duplicate Element IDs
             for dup in a11y_data.get("duplicateIds", []):
                 issues.append({
                     "category": "accessibility",
-                    "severity": "medium",
+                    "severity": "high",
                     "page_url": page_url,
-                    "title": f"Duplicate Element ID Detected (#{dup['id']})",
-                    "description": f"The ID '{dup['id']}' is repeated {dup['count']} times in the document.",
-                    "why_it_matters": "HTML IDs must be unique. Duplicate IDs break ARIA references (aria-labelledby/aria-describedby) and DOM selectors.",
-                    "recommendation": f"Ensure all elements have unique ID attributes or use CSS classes instead.",
-                    "suggested_fix": f"Rename duplicate `id='{dup['id']}'` attributes.",
+                    "title": f"Duplicate Element ID '#{dup['id']}' ({dup['count']} elements)",
+                    "description": f"The ID '{dup['id']}' is used {dup['count']} times in the document.",
+                    "why_it_matters": "Duplicate IDs break ARIA references (e.g. aria-labelledby, form labels) and script selectors.",
+                    "recommendation": "Ensure all `id` attributes are strictly unique within the page.",
+                    "suggested_fix": f"Rename duplicate IDs for #{dup['id']}.",
                     "selector": f"#{dup['id']}",
                     "evidence": dup
                 })
 
         except Exception as e:
-            logger.warning(f"Error analyzing accessibility on {page_url}: {e}")
+            logger.warning(f"Error auditing accessibility on {page_url}: {e}")
 
         return issues

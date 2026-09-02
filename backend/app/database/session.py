@@ -67,9 +67,46 @@ def get_sync_db() -> Session:
 
 async def init_db():
     global engine, AsyncSessionLocal
+    from sqlalchemy import text
+    
+    def _check_and_add_columns(sync_conn):
+        try:
+            # Check test_runs table
+            res = sync_conn.execute(text("PRAGMA table_info(test_runs)"))
+            cols = [row[1] for row in res.fetchall()]
+            if cols:
+                if "target_type" not in cols:
+                    sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN target_type VARCHAR(20) DEFAULT 'live'"))
+                if "environment" not in cols:
+                    sync_conn.execute(text("ALTER TABLE test_runs ADD COLUMN environment JSON DEFAULT '{}'"))
+
+            # Check issues table
+            res_iss = sync_conn.execute(text("PRAGMA table_info(issues)"))
+            iss_cols = [row[1] for row in res_iss.fetchall()]
+            if iss_cols:
+                if "issue_number" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN issue_number INTEGER"))
+                if "section" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN section VARCHAR(100)"))
+                if "coordinates" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN coordinates JSON DEFAULT '{}'"))
+                if "marker_type" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN marker_type VARCHAR(30) DEFAULT 'rectangle'"))
+                if "annotated_screenshot_url" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN annotated_screenshot_url VARCHAR(1024)"))
+                if "source_location" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN source_location JSON DEFAULT '{}'"))
+                if "fix_confidence" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN fix_confidence VARCHAR(30) DEFAULT 'high'"))
+                if "fix_reasoning" not in iss_cols:
+                    sync_conn.execute(text("ALTER TABLE issues ADD COLUMN fix_reasoning TEXT"))
+        except Exception:
+            pass
+
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(_check_and_add_columns)
         logger.info(f"Database schema initialized ({'SQLite: ' + sqlite_db_path if 'sqlite' in active_async_url else 'PostgreSQL'})")
     except Exception as e:
         logger.warning(f"Connection to primary DB failed ({e}). Switching to local SQLite database: {sqlite_db_path}")
@@ -83,4 +120,5 @@ async def init_db():
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(_check_and_add_columns)
         logger.info(f"Local SQLite database schema initialized at {sqlite_db_path}")

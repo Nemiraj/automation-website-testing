@@ -85,20 +85,60 @@ export const TestReportPage: React.FC = () => {
       <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 backdrop-blur-md shadow-xl space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
                 Audit Completed
               </span>
+              <span className={`rounded-md px-2.5 py-0.5 text-xs font-bold uppercase border ${
+                test_run.target_type === 'localhost'
+                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                  : 'bg-teal-500/10 text-teal-400 border-teal-500/30'
+              }`}>
+                {test_run.target_type === 'localhost' ? 'Localhost Target' : 'Live Target'}
+              </span>
+              {test_run.environment?.environment && (
+                <span className="rounded-md bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-300 border border-slate-700">
+                  {test_run.environment.environment}
+                </span>
+              )}
               <span className="text-xs text-slate-400 font-mono">
                 {new Date(test_run.created_at).toLocaleString()}
               </span>
             </div>
+            
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2 font-mono truncate">
               {test_run.target_url}
               <a href={test_run.target_url} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-emerald-400">
                 <ExternalLink className="h-4 w-4" />
               </a>
             </h1>
+
+            {/* Detected Technology Environment Stack Bar */}
+            {test_run.environment && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                {test_run.environment.server && test_run.environment.server !== 'Unknown' && (
+                  <span className="rounded-lg bg-slate-950 px-2.5 py-1 text-slate-300 border border-slate-800 font-mono">
+                    <strong className="text-slate-500 font-sans">Server:</strong> {test_run.environment.server}
+                  </span>
+                )}
+                {test_run.environment.technology && test_run.environment.technology !== 'Unknown' && (
+                  <span className="rounded-lg bg-slate-950 px-2.5 py-1 text-slate-300 border border-slate-800 font-mono">
+                    <strong className="text-slate-500 font-sans">Backend:</strong> {test_run.environment.technology}
+                  </span>
+                )}
+                {test_run.environment.database && test_run.environment.database !== 'Unknown' && (
+                  <span className="rounded-lg bg-slate-950 px-2.5 py-1 text-slate-300 border border-slate-800 font-mono">
+                    <strong className="text-slate-500 font-sans">Database:</strong> {test_run.environment.database}
+                  </span>
+                )}
+                {test_run.environment.frontend_stack && test_run.environment.frontend_stack.length > 0 && (
+                  <span className="rounded-lg bg-slate-950 px-2.5 py-1 text-slate-300 border border-slate-800 font-mono">
+                    <strong className="text-slate-500 font-sans">Libraries:</strong> {test_run.environment.frontend_stack.join(', ')}
+                  </span>
+                )}
+              </div>
+            )}
+
             <p className="text-xs text-slate-400">
               Scanned {pages.length} pages across desktop, tablet, and mobile viewports • {issues.length} total findings
             </p>
@@ -305,19 +345,61 @@ export const TestReportPage: React.FC = () => {
                 >
                   <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {iss.issue_number && (
+                        <span className="rounded-md bg-emerald-500/20 text-emerald-400 px-2 py-0.5 text-xs font-bold font-mono border border-emerald-500/30">
+                          #{iss.issue_number}
+                        </span>
+                      )}
                       <SeverityBadge severity={iss.severity} />
                       <CategoryBadge category={iss.category} />
+                      {iss.section && (
+                        <span className="rounded bg-slate-800/80 px-2 py-0.5 text-[10px] font-semibold text-slate-300 border border-slate-700">
+                          {iss.section}
+                        </span>
+                      )}
                       {iss.viewport && (
                         <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
                           {iss.viewport}
                         </span>
                       )}
+                      {iss.coordinates && iss.coordinates.width ? (
+                        <span className="rounded bg-slate-950 px-2 py-0.5 text-[10px] font-mono text-slate-300 border border-slate-800">
+                          📍 {iss.coordinates.width}×{iss.coordinates.height}px
+                        </span>
+                      ) : null}
                       <h4 className="text-xs font-bold text-white truncate">{iss.title}</h4>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{iss.description}</p>
-                    <p className="text-[11px] font-mono text-slate-500 truncate">{iss.page_url}</p>
+                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500 flex-wrap">
+                      <span className="truncate">{iss.page_url}</span>
+                      {iss.selector && (
+                        <span className="text-slate-400 truncate">Selector: <code className="text-emerald-400">{iss.selector}</code></span>
+                      )}
+                      {iss.source_location?.source_file && (
+                        <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 truncate">
+                          📁 {iss.source_location.source_file}:{iss.source_location.line_number}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-slate-500 flex-shrink-0" />
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {iss.fix_confidence && (
+                      <span className={`hidden md:inline-flex text-[10px] font-bold uppercase px-2 py-0.5 rounded ${
+                        iss.fix_confidence === 'high'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}>
+                        Fix: {iss.fix_confidence}
+                      </span>
+                    )}
+                    {(iss.annotated_screenshot_url || iss.screenshot_url) && (
+                      <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
+                        Visual Location
+                      </span>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                  </div>
                 </div>
               ))
             )}
@@ -368,19 +450,48 @@ export const TestReportPage: React.FC = () => {
 
       {/* 4. RESPONSIVE & SCREENSHOTS */}
       {activeTab === 'responsive' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {screenshots.map((s) => (
-            <div key={s.id} className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden space-y-2 p-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-white font-mono">{s.viewport}</span>
-                <span className="text-[11px] text-slate-500">{s.width} × {s.height}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {screenshots.map((s) => {
+            const vpIssues = issues.filter(i => (i.viewport === s.viewport || !i.viewport) && i.coordinates?.width);
+            return (
+              <div key={s.id} className="rounded-2xl border border-slate-800 bg-slate-900 overflow-hidden space-y-3 p-4 shadow-xl">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-white font-mono uppercase tracking-wider">{s.viewport}</span>
+                  <span className="text-[11px] text-slate-500 font-mono">{s.width} × {s.height}</span>
+                </div>
+                
+                <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden relative group">
+                  <img
+                    src={s.url_path}
+                    alt={s.viewport}
+                    className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {vpIssues.length > 0 && (
+                    <div className="absolute top-2 right-2 bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                      <span>{vpIssues.length} Markers</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[11px] text-slate-400 font-mono truncate">{s.page_url}</p>
+                  {vpIssues.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {vpIssues.slice(0, 4).map((iss) => (
+                        <button
+                          key={iss.id}
+                          onClick={() => setActiveIssue(iss)}
+                          className="rounded bg-slate-950 px-2 py-0.5 text-[10px] font-mono text-emerald-400 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-800 transition-colors"
+                        >
+                          #{iss.issue_number} {iss.title.slice(0, 16)}...
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden max-h-72 flex items-center justify-center">
-                <img src={s.url_path} alt={s.viewport} className="w-full h-auto object-contain hover:scale-105 transition-transform duration-300" />
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono truncate">{s.page_url}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

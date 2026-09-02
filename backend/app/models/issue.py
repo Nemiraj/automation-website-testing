@@ -25,12 +25,24 @@ class Issue(Base):
     recommendation: Mapped[str] = mapped_column(Text, nullable=True)
     suggested_fix: Mapped[str] = mapped_column(Text, nullable=True)
     
+    issue_number: Mapped[int] = mapped_column(nullable=True)
+    section: Mapped[str] = mapped_column(String(100), nullable=True)  # Header, Hero, Navbar, Products, Footer
     selector: Mapped[str] = mapped_column(String(512), nullable=True)
     viewport: Mapped[str] = mapped_column(String(50), nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="open")  # open, resolved, ignored
     
-    evidence: Mapped[dict] = mapped_column(JSON, default=dict)
+    # Exact Coordinates & Visual Annotations
+    coordinates: Mapped[dict] = mapped_column(JSON, default=dict)
+    marker_type: Mapped[str] = mapped_column(String(30), default="rectangle")  # rectangle, arrow, highlight
     screenshot_url: Mapped[str] = mapped_column(String(1024), nullable=True)
+    annotated_screenshot_url: Mapped[str] = mapped_column(String(1024), nullable=True)
+
+    # Source Mapping & Fix Confidence
+    source_location: Mapped[dict] = mapped_column(JSON, default=dict)
+    fix_confidence: Mapped[str] = mapped_column(String(30), default="high")  # high, medium, low
+    fix_reasoning: Mapped[str] = mapped_column(Text, nullable=True)
+    
+    evidence: Mapped[dict] = mapped_column(JSON, default=dict)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

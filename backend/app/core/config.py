@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     
     # Security & SSRF Protection
     ALLOW_INTERNAL_NETWORKS: bool = os.getenv("ALLOW_INTERNAL_NETWORKS", "false").lower() == "true"
+    ALLOW_LOCALHOST_TESTING: bool = os.getenv("ALLOW_LOCALHOST_TESTING", "true").lower() == "true"
+    LOCALHOST_HOST: str = os.getenv("LOCALHOST_HOST", "localhost")
+    LOCALHOST_TIMEOUT: int = int(os.getenv("LOCALHOST_TIMEOUT", "30000"))
     MAX_PAGES_LIMIT: int = 100
     DEFAULT_MAX_PAGES: int = 10
     DEFAULT_TIMEOUT_MS: int = 30000

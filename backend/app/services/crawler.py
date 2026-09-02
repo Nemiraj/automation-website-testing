@@ -24,12 +24,23 @@ class CrawledPageData:
         self.extracted_internal_links: List[str] = []
         self.extracted_external_links: List[str] = []
         self.html_content: str = ""
+        self.response_headers: Dict[str, str] = {}
+        self.cookies: List[Dict[str, Any]] = []
 
 
 class WebsiteCrawler:
     def __init__(self, base_url: str, max_pages: int = 10, timeout_ms: int = 30000):
         self.base_url = base_url
-        self.base_domain = urlparse(base_url).netloc.lower()
+        parsed_base = urlparse(base_url)
+        self.base_domain = parsed_base.netloc.lower()
+        
+        # Scoped path prefix for localhost sub-projects (e.g. /mywebsite/)
+        base_path = parsed_base.path
+        if base_path and base_path != "/":
+            self.base_path_prefix = base_path if base_path.endswith("/") else base_path + "/"
+        else:
+            self.base_path_prefix = "/"
+            
         self.max_pages = max_pages
         self.timeout_ms = timeout_ms
         self.visited_urls: Set[str] = set()
@@ -51,11 +62,20 @@ class WebsiteCrawler:
         return normalized
 
     def is_same_domain(self, url: str) -> bool:
-        """Check if link is internal."""
+        """Check if link is internal and stays within base project scope."""
         try:
             parsed = urlparse(url)
             domain = parsed.netloc.lower()
-            return domain == self.base_domain or domain == f"www.{self.base_domain}" or self.base_domain == f"www.{domain}"
+            if domain != self.base_domain and domain != f"www.{self.base_domain}" and self.base_domain != f"www.{domain}":
+                return False
+                
+            # If base URL has a subpath prefix (e.g. /mywebsite/), ensure links stay within this path
+            if self.base_path_prefix != "/":
+                target_path = parsed.path if parsed.path.endswith("/") else parsed.path + "/"
+                if not (target_path.startswith(self.base_path_prefix) or parsed.path == self.base_path_prefix.rstrip("/")):
+                    return False
+                    
+            return True
         except Exception:
             return False
 
@@ -93,10 +113,16 @@ class WebsiteCrawler:
                     resp = await page.goto(current_url, wait_until="domcontentloaded", timeout=self.timeout_ms)
                     if resp:
                         page_data.status_code = resp.status
+                        page_data.response_headers = await resp.all_headers()
                     
                     # Wait for network idle briefly or small stabilization
                     try:
                         await page.wait_for_load_state("networkidle", timeout=3000)
+                    except Exception:
+                        pass
+
+                    try:
+                        page_data.cookies = await context.cookies()
                     except Exception:
                         pass
 

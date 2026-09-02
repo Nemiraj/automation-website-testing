@@ -21,6 +21,18 @@ class TestConfig(BaseModel):
     enable_screenshots: bool = True
     enable_ai: bool = True
     
+    # Technology specification & detection
+    technology: Optional[str] = "auto"  # auto | php | html | react | vue | angular | other
+    port: Optional[int] = None
+    
+    # Optional Local Auth credentials (used transiently in memory, never logged or stored in DB)
+    auth_login_url: Optional[str] = None
+    auth_username: Optional[str] = None
+    auth_password: Optional[str] = None
+
+    # Local Project Source Code Analysis
+    local_source_dir: Optional[str] = None  # e.g. C:\xampp\htdocs\mywebsite
+
     # Form submission config
     form_submission_mode: str = "validation_only"  # validation_only | synthetic_submit
 
@@ -28,17 +40,20 @@ class TestConfig(BaseModel):
 class TestRunCreate(BaseModel):
     project_id: Optional[str] = None
     target_url: str
+    target_type: Optional[str] = "live"  # live | localhost
     config: Optional[TestConfig] = Field(default_factory=TestConfig)
 
 
 class TestRunStatusResponse(BaseModel):
     id: str
     target_url: str
+    target_type: str = "live"
     status: str
     progress_percentage: int
     current_stage: str
     current_page_url: Optional[str] = None
     error_message: Optional[str] = None
+    environment: Dict[str, Any] = Field(default_factory=dict)
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

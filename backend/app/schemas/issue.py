@@ -12,11 +12,19 @@ class IssueBase(BaseModel):
     why_it_matters: Optional[str] = None
     recommendation: Optional[str] = None
     suggested_fix: Optional[str] = None
+    issue_number: Optional[int] = None
+    section: Optional[str] = None
     selector: Optional[str] = None
     viewport: Optional[str] = None
     status: str = "open"
-    evidence: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    coordinates: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    marker_type: Optional[str] = "rectangle"
     screenshot_url: Optional[str] = None
+    annotated_screenshot_url: Optional[str] = None
+    source_location: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    fix_confidence: Optional[str] = "high"
+    fix_reasoning: Optional[str] = None
+    evidence: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class IssueCreate(IssueBase):

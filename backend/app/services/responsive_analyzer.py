@@ -5,11 +5,13 @@ from backend.app.core.logging import logger
 from backend.app.services.browser import BrowserSession
 from backend.app.services.storage import storage_service
 from backend.app.services.ui_analyzer import UIAnalyzer
+from backend.app.services.dom_inspector import dom_inspector
 
 
 class ResponsiveAnalyzer:
     def __init__(self):
         self.ui_analyzer = UIAnalyzer()
+        self.dom_inspector = dom_inspector
 
     async def test_page_viewports(
         self,
@@ -19,7 +21,7 @@ class ResponsiveAnalyzer:
         viewports_to_test: List[str]
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
-        Executes page test across multiple viewports.
+        Executes complete page test across multiple viewports with full-page scroll rendering.
         Returns (issues, screenshots_metadata).
         """
         issues: List[Dict[str, Any]] = []
@@ -38,11 +40,18 @@ class ResponsiveAnalyzer:
                     except Exception:
                         pass
 
-                    # 1. UI & Responsive layout checks in this viewport
+                    # 1. Full-page scroll rendering (trigger lazy loads and responsive reflows)
+                    await self.dom_inspector.scroll_and_render_full_page(page)
+
+                    # 2. UI & Responsive layout checks in this viewport
                     vp_issues = await self.ui_analyzer.analyze_ui(page, page_url, viewport_name=vp_key)
                     issues.extend(vp_issues)
 
-                    # 2. Capture Viewport Screenshot
+                    # 3. Deep Full-DOM & Section layout analysis (overlap, overflow, positioning)
+                    dom_issues, section_info = await self.dom_inspector.inspect_page_layout_and_sections(page, page_url, viewport_name=vp_key)
+                    issues.extend(dom_issues)
+
+                    # 4. Capture Viewport Screenshot
                     vp_bytes = await page.screenshot(full_page=False)
                     fpath, upath = storage_service.save_screenshot_bytes(
                         vp_bytes, test_id=test_id, viewport=vp_key, page_name=page_url.split("/")[-1] or "home"
@@ -53,7 +62,8 @@ class ResponsiveAnalyzer:
                         "height": vp_config["height"],
                         "file_path": fpath,
                         "url_path": upath,
-                        "is_full_page": False
+                        "is_full_page": False,
+                        "section_info": section_info
                     })
 
                 except Exception as e:

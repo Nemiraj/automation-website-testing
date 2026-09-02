@@ -26,6 +26,21 @@ export interface TestConfig {
   enable_screenshots: boolean;
   enable_ai: boolean;
   form_submission_mode: 'validation_only' | 'synthetic_submit';
+  technology?: string;
+  port?: number;
+  auth_login_url?: string;
+  auth_username?: string;
+  auth_password?: string;
+  local_source_dir?: string;
+}
+
+export interface EnvironmentInfo {
+  server?: string;
+  technology?: string;
+  environment?: string;
+  database?: string;
+  frontend_stack?: string[];
+  detected_stack?: string[];
 }
 
 export interface Project {
@@ -44,11 +59,13 @@ export interface TestRun {
   id: string;
   project_id?: string;
   target_url: string;
+  target_type: 'live' | 'localhost';
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   progress_percentage: number;
   current_stage: string;
   current_page_url?: string;
   error_message?: string;
+  environment?: EnvironmentInfo;
   overall_score?: number | null;
   ui_score?: number | null;
   responsive_score?: number | null;
@@ -79,11 +96,31 @@ export interface IssueItem {
   why_it_matters?: string;
   recommendation?: string;
   suggested_fix?: string;
+  issue_number?: number;
+  section?: string;
   selector?: string;
   viewport?: string;
   status: 'open' | 'resolved' | 'ignored';
+  coordinates?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    tag?: string;
+  };
+  marker_type?: 'rectangle' | 'arrow' | 'highlight';
+  source_location?: {
+    source_file?: string;
+    line_number?: number;
+    snippet?: string;
+    confidence?: 'confirmed' | 'likely' | 'inferred';
+    search_hint?: string;
+  };
+  fix_confidence?: 'high' | 'medium' | 'low';
+  fix_reasoning?: string;
   evidence: Record<string, any>;
   screenshot_url?: string;
+  annotated_screenshot_url?: string;
   created_at: string;
 }
 

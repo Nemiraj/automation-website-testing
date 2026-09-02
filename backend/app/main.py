@@ -56,8 +56,13 @@ app.add_middleware(
 
 # Static screenshots serving
 screenshots_dir = os.path.join(settings.STORAGE_PATH, "screenshots")
+diffs_dir = os.path.join(screenshots_dir, "diffs")
 os.makedirs(screenshots_dir, exist_ok=True)
+os.makedirs(diffs_dir, exist_ok=True)
+
 app.mount("/api/screenshots", StaticFiles(directory=screenshots_dir), name="screenshots")
+app.mount("/api/storage/screenshots", StaticFiles(directory=screenshots_dir), name="api_storage_screenshots")
+app.mount("/storage/screenshots", StaticFiles(directory=screenshots_dir), name="storage_screenshots")
 
 # Mount API Routers
 app.include_router(api_router, prefix=settings.API_V1_STR)

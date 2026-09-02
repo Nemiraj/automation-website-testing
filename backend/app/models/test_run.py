@@ -19,6 +19,10 @@ class TestRun(Base):
     current_page_url: Mapped[str] = mapped_column(String(1024), nullable=True)
     error_message: Mapped[str] = mapped_column(String(1024), nullable=True)
 
+    # Target & Environment
+    target_type: Mapped[str] = mapped_column(String(20), default="live")  # live | localhost
+    environment: Mapped[dict] = mapped_column(JSON, default=dict)
+    
     # Config options
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     

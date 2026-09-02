@@ -44,6 +44,10 @@ class UIAnalyzer:
                             overflowingElements.push({
                                 selector: selector,
                                 tagName: el.tagName.toLowerCase(),
+                                x: Math.round(rect.x),
+                                y: Math.round(rect.y),
+                                width: Math.round(rect.width),
+                                height: Math.round(rect.height),
                                 right: Math.round(rect.right),
                                 docWidth: docWidth,
                                 rectWidth: Math.round(rect.width)
@@ -68,7 +72,10 @@ class UIAnalyzer:
                                 }
                                 smallClickables.push({
                                     selector: sel,
+                                    tagName: el.tagName.toLowerCase(),
                                     text: (el.innerText || el.getAttribute('aria-label') || '').slice(0, 30),
+                                    x: Math.round(rect.x),
+                                    y: Math.round(rect.y),
                                     width: Math.round(rect.width),
                                     height: Math.round(rect.height)
                                 });
@@ -77,10 +84,18 @@ class UIAnalyzer:
                     });
 
                     // 4. Headings Structure
-                    const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => ({
-                        level: parseInt(h.tagName.substring(1)),
-                        text: (h.innerText || '').slice(0, 50)
-                    }));
+                    const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => {
+                        const rect = h.getBoundingClientRect();
+                        return {
+                            level: parseInt(h.tagName.substring(1)),
+                            text: (h.innerText || '').slice(0, 50),
+                            selector: h.tagName.toLowerCase(),
+                            x: Math.round(rect.x),
+                            y: Math.round(rect.y),
+                            width: Math.round(rect.width),
+                            height: Math.round(rect.height)
+                        };
+                    });
 
                     return {
                         hasHorizontalOverflow,
@@ -98,7 +113,8 @@ class UIAnalyzer:
             if dom_ui_data.get("hasHorizontalOverflow"):
                 overflow_px = dom_ui_data.get("overflowAmount", 0)
                 over_els = dom_ui_data.get("overflowingElements", [])
-                top_el_selector = over_els[0]["selector"] if over_els else "body"
+                top_el = over_els[0] if over_els else None
+                top_el_selector = top_el["selector"] if top_el else "body"
 
                 issues.append({
                     "category": "responsive" if "mobile" in viewport_name or "tablet" in viewport_name else "ui",
@@ -111,6 +127,14 @@ class UIAnalyzer:
                     "recommendation": "Review fixed widths, large margins/paddings, or missing `max-w-full` / `overflow-x: hidden` on container elements.",
                     "suggested_fix": f"Inspect {top_el_selector} and apply `max-width: 100%` or `box-sizing: border-box`.",
                     "selector": top_el_selector,
+                    "coordinates": {
+                        "x": top_el["x"] if top_el else 0,
+                        "y": top_el["y"] if top_el else 0,
+                        "width": top_el["width"] if top_el else dom_ui_data["docWidth"],
+                        "height": top_el["height"] if top_el else 100,
+                        "tag": top_el["tagName"] if top_el else "div"
+                    } if top_el else {},
+                    "marker_type": "rectangle",
                     "evidence": {
                         "viewport": viewport_name,
                         "viewport_width": dom_ui_data["docWidth"],
@@ -133,6 +157,14 @@ class UIAnalyzer:
                     "recommendation": "Increase the element padding or minimum bounding box to at least 32px (desktop) or 44px (touch devices).",
                     "suggested_fix": f"Add `padding` or `min-width: 32px; min-height: 32px;` to {target['selector']}.",
                     "selector": target["selector"],
+                    "coordinates": {
+                        "x": target.get("x", 0),
+                        "y": target.get("y", 0),
+                        "width": target.get("width", 20),
+                        "height": target.get("height", 20),
+                        "tag": target.get("tagName", "button")
+                    },
+                    "marker_type": "arrow",
                     "evidence": target
                 })
 
